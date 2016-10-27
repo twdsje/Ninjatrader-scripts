@@ -322,9 +322,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        double barOpenPrice	 = ChartBars.Bars.GetOpen(chartBarIndex);
 				double barHighPrice	 = ChartBars.Bars.GetHigh(chartBarIndex);
 		        double barLowPrice	 = ChartBars.Bars.GetLow(chartBarIndex);
-				
-				
-//me				
+							
 				barVolume = ChartBars.Bars.GetVolume(chartBarIndex);
 							
 				
@@ -392,7 +390,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{					
 					double maxVolume = double.MinValue;;
 //					double barVolume = 0;
-					double barDelta = 0;
 					double maxAskVolume = double.MinValue;
 					double maxBidVolume = double.MinValue;
 					double footPrintBarTopVolume = double.MinValue;
@@ -420,10 +417,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						// create totalDelta, currentVolume, and delta values
 						totalDelta += kvp.Value.askVolume;
 						totalDelta -= kvp.Value.bidVolume;
-						barVolume = kvp.Value.askVolume + kvp.Value.bidVolume;
-						barDelta = kvp.Value.askVolume - kvp.Value.bidVolume;						
-						
-						//TODO here?
+						barVolume = kvp.Value.askVolume + kvp.Value.bidVolume;						
 						
 						// determine the bar opacity
 						double curr_percent = 100 * (barVolume / maxVolume);
@@ -523,7 +517,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 						totalDelta += t.askVolume;
 						totalDelta -= t.bidVolume;
 						barVolume = t.askVolume + t.bidVolume;
-						barDelta = t.askVolume - t.bidVolume;	
 																
 						double curr_percent = 100 * (barVolume / maxVolume);
 						double curr_opacity = Math.Round((curr_percent / 100) * 0.8, 1);
