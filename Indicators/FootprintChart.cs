@@ -67,7 +67,7 @@ public enum HighestVolumeEnum
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public class FootprintChartV4 : Indicator
+	public class FootprintChart : Indicator
 	{
 		#region Variable and Structure Declarations
  
@@ -115,7 +115,6 @@ namespace NinjaTrader.NinjaScript.Indicators
  		int	   chartBarIndex;
 
 		
-//me
 		double barVolume;			// bar volume
 		double barDelta;			// bar delta
 		double sessionVolume = 0;	// session volume
@@ -194,8 +193,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		protected override void OnMarketData(MarketDataEventArgs e)
 		{	
 			if (e.MarketDataType == MarketDataType.Last){
-				
-//me				
+							
 				lastHit=0;
 
 				
@@ -253,8 +251,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						tmpBidVolume = e.Volume;
 						tmpCurrentVolume = e.Volume;
 						bidAskVolume.Add(e.Price, new BidAskVolume(tmpCurrentVolume, tmpAskVolume, tmpBidVolume));
-					}
-//me						
+					}					
 				lastHit=2;
 				if(ShowCurrentPrice)
 				Draw.HorizontalLine(this, "CurrPrice", false, e.Price, LineLongColor, LineStyle, LineWidth);
@@ -353,43 +350,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				// init totalDelta and maxVolumePrice
 				double totalDelta = 0;
-				double maxVolumePrice = 0;
-				
-				
-//Draw VWAP	######################	a work in progress with option to show multiple deviations		
-				#region DrawVWAP 
-				if (ShowVWAP) {
-					SharpDX.Direct2D1.Brush VWAPColor;
-					
-							rect.X = barX ;//-5;//-(int)chartControl.BarWidth-17;
-					
-							rect.Y = Math.Min(barHighY,barLowY)/2;
-					//		rect.Y = Math.Min((barHighY-barLowY)/2,rect.Y);
-					//		rect.Y = Math.Min((barHighY+barLowY+barCloseY)/3,volume);
-
-//							rect.Width	= 4;
-//							rect.Height	= 2;
-				
-				
-					// set the volume background color
-					VWAPColor = VWAPBackgroundColor.ToDxBrush(RenderTarget);
-						
-					float vwapBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(ChartControl.BarWidth);			//(float)(chartControl.HorizontalAlignment+55);
-
-					// draw the VWAP rectangle
-					RenderTarget.FillRectangle(new RectangleF(vwapBar, (float)(ChartPanel.H - rect.Y), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), VWAPColor);
-				}
-				#endregion
-									
-// 				###############################################			
-				
+				double maxVolumePrice = 0;				
 				
 // BARS
 				#region FootPrint Bars
 				if (chartBarIndex == ChartBars.Count-1)
 				{					
 					double maxVolume = double.MinValue;;
-//					double barVolume = 0;
 					double maxAskVolume = double.MinValue;
 					double maxBidVolume = double.MinValue;
 					double footPrintBarTopVolume = double.MinValue;
@@ -563,7 +530,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						
 						// draw the bid footprint bar string
 						footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Trailing;
-						if (t.Price == barClosePrice && closePriceIndicator == ClosePriceEnum.TextColor)// && lastHit==1)
+						if (t.Price == barClosePrice && closePriceIndicator == ClosePriceEnum.TextColor)
 							RenderTarget.DrawText(bidStr, footPrintBarFont, new RectangleF(barX - 5 - (float)chartControl.BarWidth, y, (float)chartControl.BarWidth, (float)(rectangleOffset)),
 								FootBrintParClosePriceColor.ToDxBrush(RenderTarget));
 						else
@@ -572,7 +539,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 													
 						// draw the ask footprint bar string
 						footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Leading;
-						if (t.Price == barClosePrice && closePriceIndicator == ClosePriceEnum.TextColor)// && lastHit==2)
+						if (t.Price == barClosePrice && closePriceIndicator == ClosePriceEnum.TextColor)
 							RenderTarget.DrawText(askStr, footPrintBarFont, new RectangleF(barX + 5, y, (float)chartControl.BarWidth, (float)(rectangleOffset)),
 								FootBrintParClosePriceColor.ToDxBrush(RenderTarget));
 						else
@@ -591,7 +558,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (Math.Abs(barOpenY - barCloseY) < 0.0000001) {
 						// draw doji bar if no movement between open and close
 						if (ShowCandleStickBars) {
-							point0.X = x ;//- 10;
+							point0.X = x ;
 							point0.Y = barCloseY;
 							point1.X = x - 1;
 							point1.Y = barCloseY;
@@ -626,7 +593,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						
 						if (ShowBodyBar) {
 							rect.X		= barX - (int)chartControl.BarWidth;
-							rect.Y		= Math.Min(barCloseY, barOpenY) ;//- ((float)rectangleOffset / 2);
+							rect.Y		= Math.Min(barCloseY, barOpenY) ;
 							rect.Width	= barWidth * 2;
 							rect.Height	= (Math.Max(barOpenY, barCloseY) - Math.Min(barCloseY, barOpenY)) + (float)rectangleOffset;
 											
@@ -642,9 +609,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 						// high wick
 						if (barHighY < Math.Min(barOpenY, barCloseY)) {
 							if (ShowCandleStickBars) {
-								point0.X = barX ;//- (float)(chartControl.BarWidth + 5);
+								point0.X = barX ;
 								point0.Y = barHighY;
-								point1.X = barX ;//- (float)(chartControl.BarWidth + 5);
+								point1.X = barX ;
 								point1.Y = Math.Min(barOpenY, barCloseY);
 							
 								// draw the high wick, the color and width come from the main chart properties
@@ -660,19 +627,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 									point1.Y = Math.Max(barOpenY, barCloseY);
 								else
 									point1.Y = Math.Max(barOpenY, barCloseY) + ((float)rectangleOffset / 2);
-
-								// draw the high wick, the color and width come from the main chart properties
-	//							RenderTarget.DrawLine(point0, point1, ChartBars.Properties.ChartStyle.Stroke2.BrushDX, ChartBars.Properties.ChartStyle.Stroke2.Width);
 							}	
 						}
 
 						// low wick
 						if (barLowY > Math.Max(barOpenY, barCloseY)) {
 							if (ShowCandleStickBars) {
-//								point0.X = barX - (float)(chartControl.BarWidth + 5);
-								point0.X = barX ;//- (float)(chartControl.BarWidth + 5);
+								point0.X = barX ;
 								point0.Y = barLowY;
-								point1.X = barX ;//- (float)(chartControl.BarWidth + 5);
+								point1.X = barX ;
 								point1.Y = Math.Max(barOpenY, barCloseY);
 
 								// draw the low wick, the color and width come from the main chart properties
@@ -689,8 +652,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 								else
 									point1.Y = Math.Max(barOpenY, barCloseY) + ((float)rectangleOffset / 2);
 
-								// draw the low wick, the color and width come from the main chart properties		##### no longer needed #####
-	//							RenderTarget.DrawLine(point0, point1, ChartBars.Properties.ChartStyle.Stroke2.BrushDX, ChartBars.Properties.ChartStyle.Stroke2.Width);
 							}							
 						}
 					}
@@ -966,18 +927,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			get { return Serialize.BrushToString(FootBrintParHighestVolumeColor); }
    			set { FootBrintParHighestVolumeColor = Serialize.StringToBrush(value); }
-		}		
-//		[XmlIgnore]
-//		[Display(ResourceType = typeof(Custom.Resource), Name = "Highest Volume Indicator Color", Description = "Color for the session volume rectangle.", Order = 9, GroupName = "3. FootPrint Bar Properties")]
-//		public System.Windows.Media.Brush FootBrintParSessionVolumeColor		
-//		{ get; set; }
-		
-//		[Browsable(false)]
-//		public string FootBrintParSessionVolumeColorSerialize
-//		{
-//			get { return Serialize.BrushToString(FootBrintParSessionVolumeColor); }
-//   			set { FootBrintParSessionVolumeColor = Serialize.StringToBrush(value); }
-//		}		
+		}				
 		#endregion
 				
 		#region Footer Properties
@@ -1050,25 +1000,6 @@ namespace NinjaTrader.NinjaScript.Indicators
    			set { SessionDeltaDownColor = Serialize.StringToBrush(value); }
 		}
 		#endregion
-		
-//me volume		
-				#region Volume Properties
-//				[NinjaScriptProperty]
-//				[Display(Name="Show Total Volume", Order=1, GroupName="5. Volume Properties")]
-//				public bool ShowVolume
-//				{ get; set; }
-		
-//				[XmlIgnore]
-//				[Display(ResourceType = typeof(Custom.Resource), Name = "Text Color", Order = 2, GroupName = "5. Volume Properties")]
-//				public System.Windows.Media.Brush VolumeFontColor		
-//				{ get; set; }
-				
-//				[Browsable(false)]
-//				public string VolumeFontColorSerialize
-//				{
-//					get { return Serialize.BrushToString(VolumeFontColor); }
-//		   			set { VolumeFontColor = Serialize.StringToBrush(value); }
-//				}
 				
 				[XmlIgnore]
 				[Display(ResourceType = typeof(Custom.Resource), Name = "Bar Volume Background Color", Order = 7, GroupName = "4. Footer Properties")]
@@ -1092,39 +1023,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 					get { return Serialize.BrushToString(SessionVolumeBackgroundColor); }
 		   			set { SessionVolumeBackgroundColor = Serialize.StringToBrush(value); }
 				}
-
-				#endregion
-//me VWAP		
-				#region VWAP Properties
-				[NinjaScriptProperty]
-				[Display(Name="Show VWAP", Order=1, GroupName="6. VWAP Properties ... UNDER CONSTRUCTION")]
-				public bool ShowVWAP
-				{ get; set; }
-		
-				[XmlIgnore]
-				[Display(ResourceType = typeof(Custom.Resource), Name = "Background Color", Order = 2, GroupName = "6. VWAP Properties ... UNDER CONSTRUCTION")]
-				public System.Windows.Media.Brush VWAPBackgroundColor		
-				{ get; set; }
-				
-				[Browsable(false)]
-				public string VWAPBackgroundColorSerialize
-				{
-					get { return Serialize.BrushToString(VWAPBackgroundColor); }
-		   			set { VWAPBackgroundColor = Serialize.StringToBrush(value); }
-				}
-//				[XmlIgnore]
-//				[Display(ResourceType = typeof(Custom.Resource), Name = "Text Color", Order = 2, GroupName = "6. VWAP Properties")]
-//				public System.Windows.Media.Brush VWAPFontColor		
-//				{ get; set; }
-				
-//				[Browsable(false)]
-//				public string VWAPFontColorSerialize
-//				{
-//					get { return Serialize.BrushToString(VWAPFontColor); }
-//		   			set { VWAPFontColor = Serialize.StringToBrush(value); }
-//				}
-				
-
 				#endregion
 				
 				#region PriceLine
@@ -1180,19 +1078,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				public int LineWidth
 				{ get; set; }
 
-//				[NinjaScriptProperty]
-//				[Display(Name="UseExtendedLine", Description="Use Extended Line or measured line", Order=6, GroupName="Parameters")]
-//				public bool UseExtendedLine
-//				{ get; set; }
-
-//				[Range(1, int.MaxValue)]
-//				[NinjaScriptProperty]
-//				[Display(Name="RayLength", Description="Line Length when not extended (in number of bars)", Order=7, GroupName="Parameters")]
-//				public int RayLength
-//				{ get; set; }
 				#endregion
-					
-//				
+								
 				
 				#endregion
 	}
@@ -1204,19 +1091,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private FootprintChartV4[] cacheFootprintChartV4;
-		public FootprintChartV4 FootprintChartV4(int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showVWAP, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		private FootprintChart[] cacheFootprintChart;
+		public FootprintChart FootprintChart(int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
 		{
-			return FootprintChartV4(Input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showVWAP, showCurrentPrice, lineStyle, lineWidth);
+			return FootprintChart(Input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showCurrentPrice, lineStyle, lineWidth);
 		}
 
-		public FootprintChartV4 FootprintChartV4(ISeries<double> input, int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showVWAP, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public FootprintChart FootprintChart(ISeries<double> input, int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
 		{
-			if (cacheFootprintChartV4 != null)
-				for (int idx = 0; idx < cacheFootprintChartV4.Length; idx++)
-					if (cacheFootprintChartV4[idx] != null && cacheFootprintChartV4[idx].BarSpacing == barSpacing && cacheFootprintChartV4[idx].BarWidth == barWidth && cacheFootprintChartV4[idx].TextFont == textFont && cacheFootprintChartV4[idx].ShowCandleStickBars == showCandleStickBars && cacheFootprintChartV4[idx].ShowBodyBar == showBodyBar && cacheFootprintChartV4[idx].ShowWicks == showWicks && cacheFootprintChartV4[idx].FootPrintBarType == footPrintBarType && cacheFootprintChartV4[idx].FootPrintBarColor == footPrintBarColor && cacheFootprintChartV4[idx].ClosePriceIndicator == closePriceIndicator && cacheFootprintChartV4[idx].HighVolumeIndicator == highVolumeIndicator && cacheFootprintChartV4[idx].ShowFooter == showFooter && cacheFootprintChartV4[idx].ShowVWAP == showVWAP && cacheFootprintChartV4[idx].ShowCurrentPrice == showCurrentPrice && cacheFootprintChartV4[idx].LineStyle == lineStyle && cacheFootprintChartV4[idx].LineWidth == lineWidth && cacheFootprintChartV4[idx].EqualsInput(input))
-						return cacheFootprintChartV4[idx];
-			return CacheIndicator<FootprintChartV4>(new FootprintChartV4(){ BarSpacing = barSpacing, BarWidth = barWidth, TextFont = textFont, ShowCandleStickBars = showCandleStickBars, ShowBodyBar = showBodyBar, ShowWicks = showWicks, FootPrintBarType = footPrintBarType, FootPrintBarColor = footPrintBarColor, ClosePriceIndicator = closePriceIndicator, HighVolumeIndicator = highVolumeIndicator, ShowFooter = showFooter, ShowVWAP = showVWAP, ShowCurrentPrice = showCurrentPrice, LineStyle = lineStyle, LineWidth = lineWidth }, input, ref cacheFootprintChartV4);
+			if (cacheFootprintChart != null)
+				for (int idx = 0; idx < cacheFootprintChart.Length; idx++)
+					if (cacheFootprintChart[idx] != null && cacheFootprintChart[idx].BarSpacing == barSpacing && cacheFootprintChart[idx].BarWidth == barWidth && cacheFootprintChart[idx].TextFont == textFont && cacheFootprintChart[idx].ShowCandleStickBars == showCandleStickBars && cacheFootprintChart[idx].ShowBodyBar == showBodyBar && cacheFootprintChart[idx].ShowWicks == showWicks && cacheFootprintChart[idx].FootPrintBarType == footPrintBarType && cacheFootprintChart[idx].FootPrintBarColor == footPrintBarColor && cacheFootprintChart[idx].ClosePriceIndicator == closePriceIndicator && cacheFootprintChart[idx].HighVolumeIndicator == highVolumeIndicator && cacheFootprintChart[idx].ShowFooter == showFooter && cacheFootprintChart[idx].ShowCurrentPrice == showCurrentPrice && cacheFootprintChart[idx].LineStyle == lineStyle && cacheFootprintChart[idx].LineWidth == lineWidth && cacheFootprintChart[idx].EqualsInput(input))
+						return cacheFootprintChart[idx];
+			return CacheIndicator<FootprintChart>(new FootprintChart(){ BarSpacing = barSpacing, BarWidth = barWidth, TextFont = textFont, ShowCandleStickBars = showCandleStickBars, ShowBodyBar = showBodyBar, ShowWicks = showWicks, FootPrintBarType = footPrintBarType, FootPrintBarColor = footPrintBarColor, ClosePriceIndicator = closePriceIndicator, HighVolumeIndicator = highVolumeIndicator, ShowFooter = showFooter, ShowCurrentPrice = showCurrentPrice, LineStyle = lineStyle, LineWidth = lineWidth }, input, ref cacheFootprintChart);
 		}
 	}
 }
@@ -1225,14 +1112,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.FootprintChartV4 FootprintChartV4(int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showVWAP, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.FootprintChart FootprintChart(int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
 		{
-			return indicator.FootprintChartV4(Input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showVWAP, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.FootprintChart(Input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showCurrentPrice, lineStyle, lineWidth);
 		}
 
-		public Indicators.FootprintChartV4 FootprintChartV4(ISeries<double> input , int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showVWAP, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.FootprintChart FootprintChart(ISeries<double> input , int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
 		{
-			return indicator.FootprintChartV4(input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showVWAP, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.FootprintChart(input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showCurrentPrice, lineStyle, lineWidth);
 		}
 	}
 }
@@ -1241,14 +1128,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.FootprintChartV4 FootprintChartV4(int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showVWAP, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.FootprintChart FootprintChart(int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
 		{
-			return indicator.FootprintChartV4(Input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showVWAP, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.FootprintChart(Input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showCurrentPrice, lineStyle, lineWidth);
 		}
 
-		public Indicators.FootprintChartV4 FootprintChartV4(ISeries<double> input , int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showVWAP, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.FootprintChart FootprintChart(ISeries<double> input , int barSpacing, int barWidth, NinjaTrader.Gui.Tools.SimpleFont textFont, bool showCandleStickBars, bool showBodyBar, bool showWicks, FootPrintBarEnum footPrintBarType, FootPrintBarColorEnum footPrintBarColor, ClosePriceEnum closePriceIndicator, HighestVolumeEnum highVolumeIndicator, bool showFooter, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
 		{
-			return indicator.FootprintChartV4(input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showVWAP, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.FootprintChart(input, barSpacing, barWidth, textFont, showCandleStickBars, showBodyBar, showWicks, footPrintBarType, footPrintBarColor, closePriceIndicator, highVolumeIndicator, showFooter, showCurrentPrice, lineStyle, lineWidth);
 		}
 	}
 }
