@@ -73,7 +73,6 @@ namespace NinjaTrader.NinjaScript.Indicators
  
 		private int barSpacing = 90;
 		private int barWidth = 43;
-//		private int rightsidemargin = 200;
 		private bool setChartProperties = true;
 		private string displayName = null;
 		FootPrintBarEnum footPrintBarType = FootPrintBarEnum.BidAsk;
@@ -154,7 +153,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FooterFontColor 					= Brushes.Black;
 				BarVolumeBackgroundColor			= Brushes.LightBlue;
 				SessionVolumeBackgroundColor		= Brushes.DodgerBlue;
-				VWAPBackgroundColor					= Brushes.LightBlue;
 				FootBrintParClosePriceColor		 	= Brushes.Gold;
 				FootBrintParHighestVolumeColor 		= Brushes.LightBlue;
 				FootBrintParTextColor 				= Brushes.Black;
@@ -170,8 +168,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				// default boolean values
 				ShowCurrentPrice			= false;
-				ShowFooter 					= true;				
-				ShowVWAP	 				= false;				
+				ShowFooter 					= true;							
 				ShowCandleStickBars 		= true;
 				ShowBodyBar					= false;
 				ShowWicks 					= true;
@@ -1078,10 +1075,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				public int LineWidth
 				{ get; set; }
 
-				#endregion
-								
-				
-				#endregion
+				#endregion							
 	}
 }
 
