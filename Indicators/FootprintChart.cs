@@ -133,7 +133,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				
 				Description							= @"Displays candlestick bars with coloured histogram of buy & sell volumes and more...";
-				Name								= "FootprintChartV4";
+				Name								= "FootprintChart";
 				Calculate							= Calculate.OnEachTick;
 				IsOverlay							= true;
 				DisplayInDataBox					= true;
