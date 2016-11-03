@@ -88,7 +88,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				PlotBrushes[0][0] = Highlight;
 				
 				if(DrawArrows)
+				{
+					DrawOnPricePanel = true;
 					Draw.ArrowUp(this, "BigCandle " + Time[0].ToString(), true, 0, Low[0], Highlight);
+					DrawOnPricePanel = false;
+				}
 					
 				if(AlertEnabled)
 					Alert("BigCandle", AlertPriority, "Unusual price movement",  NinjaTrader.Core.Globals.InstallDir+@"\sounds\Alert1.wav", AlertRearm, Brushes.Black, Highlight);
