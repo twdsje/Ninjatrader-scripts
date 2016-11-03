@@ -72,7 +72,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			if(Bars.IsFirstBarOfSession)
 			{
-				AverageRange[0] = SMA(Range, Period)[0];
+				AverageRange[0] = WMA(Range, Period)[0];
 				currentDeviation = StdDev(Range, DeviationPeriod)[0];
 			}
 			else
