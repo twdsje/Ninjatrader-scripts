@@ -38,16 +38,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Calculate									= Calculate.OnPriceChange;
 				IsOverlay									= false;
 				DisplayInDataBox							= true;
-				DrawOnPricePanel							= true;
+				DrawOnPricePanel							= false;
 				DrawHorizontalGridLines						= true;
 				DrawVerticalGridLines						= true;
-				PaintPriceMarkers							= true;
+				PaintPriceMarkers							= false;
 				ScaleJustification							= NinjaTrader.Gui.Chart.ScaleJustification.Right;
 				//Disable this property if your indicator requires custom values that cumulate with each new market data event. 
 				//See Help Guide for additional information.
 				IsSuspendedWhileInactive					= true;
-				DeviationFactor					= 3;
-				Period = 120;
+				DeviationFactor					= 2;
+				Period = 15;
+				DeviationPeriod = 1500;
 				AlertEnabled = false;
 				AlertPriority = Priority.Medium;
 				AlertRearm = 300;
@@ -67,8 +68,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 			//Add your custom indicator logic here.
 			Range[0] = High[0] - Low[0];
 			
-			AverageRange[0] = SMA(Range, Period)[0];
-			double currentDeviation = StdDev(Range, Period)[0];
+			double currentDeviation;
+			
+			if(Bars.IsFirstBarOfSession)
+			{
+				AverageRange[0] = SMA(Range, Period)[0];
+				currentDeviation = StdDev(Range, DeviationPeriod)[0];
+			}
+			else
+			{
+				AverageRange[0] = WMA(Range, Period)[0];
+				currentDeviation = StdDev(Range, DeviationPeriod)[1];
+			}
 			
 			RangeDeviation[0] = AverageRange[0] + currentDeviation * DeviationFactor;
 			
@@ -78,7 +89,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				if(DrawArrows)
 					Draw.ArrowUp(this, "BigCandle " + Time[0].ToString(), true, 0, Low[0], Highlight);
-				
+					
 				if(AlertEnabled)
 					Alert("BigCandle", AlertPriority, "Unusual price movement",  NinjaTrader.Core.Globals.InstallDir+@"\sounds\Alert1.wav", AlertRearm, Brushes.Black, Highlight);
 			}
@@ -89,13 +100,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(1, int.MaxValue)]
 		[NinjaScriptProperty]
 		[Display(Name="Deviation Factor", Description="Number of standard deviations required to highlight a bar as unusual.", Order=1, GroupName="Parameters")]
-		public int DeviationFactor
+		public double DeviationFactor
 		{ get; set; }
 		
 		[Range(1, int.MaxValue)]
 		[NinjaScriptProperty]
 		[Display(Name = "Period", GroupName = "Parameters", Order = 1)]
 		public int Period
+		{ get; set; }
+		
+		[Range(1, int.MaxValue)]
+		[NinjaScriptProperty]
+		[Display(Name = "Deviation Period", GroupName = "Parameters", Order = 1)]
+		public int DeviationPeriod
 		{ get; set; }
 
 		[XmlIgnore()] 
@@ -159,18 +176,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private BigCandle[] cacheBigCandle;
-		public BigCandle BigCandle(int deviationFactor, int period)
+		public BigCandle BigCandle(double deviationFactor, int period, int deviationPeriod)
 		{
-			return BigCandle(Input, deviationFactor, period);
+			return BigCandle(Input, deviationFactor, period, deviationPeriod);
 		}
 
-		public BigCandle BigCandle(ISeries<double> input, int deviationFactor, int period)
+		public BigCandle BigCandle(ISeries<double> input, double deviationFactor, int period, int deviationPeriod)
 		{
 			if (cacheBigCandle != null)
 				for (int idx = 0; idx < cacheBigCandle.Length; idx++)
-					if (cacheBigCandle[idx] != null && cacheBigCandle[idx].DeviationFactor == deviationFactor && cacheBigCandle[idx].Period == period && cacheBigCandle[idx].EqualsInput(input))
+					if (cacheBigCandle[idx] != null && cacheBigCandle[idx].DeviationFactor == deviationFactor && cacheBigCandle[idx].Period == period && cacheBigCandle[idx].DeviationPeriod == deviationPeriod && cacheBigCandle[idx].EqualsInput(input))
 						return cacheBigCandle[idx];
-			return CacheIndicator<BigCandle>(new BigCandle(){ DeviationFactor = deviationFactor, Period = period }, input, ref cacheBigCandle);
+			return CacheIndicator<BigCandle>(new BigCandle(){ DeviationFactor = deviationFactor, Period = period, DeviationPeriod = deviationPeriod }, input, ref cacheBigCandle);
 		}
 	}
 }
@@ -179,14 +196,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.BigCandle BigCandle(int deviationFactor, int period)
+		public Indicators.BigCandle BigCandle(double deviationFactor, int period, int deviationPeriod)
 		{
-			return indicator.BigCandle(Input, deviationFactor, period);
+			return indicator.BigCandle(Input, deviationFactor, period, deviationPeriod);
 		}
 
-		public Indicators.BigCandle BigCandle(ISeries<double> input , int deviationFactor, int period)
+		public Indicators.BigCandle BigCandle(ISeries<double> input , double deviationFactor, int period, int deviationPeriod)
 		{
-			return indicator.BigCandle(input, deviationFactor, period);
+			return indicator.BigCandle(input, deviationFactor, period, deviationPeriod);
 		}
 	}
 }
@@ -195,14 +212,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.BigCandle BigCandle(int deviationFactor, int period)
+		public Indicators.BigCandle BigCandle(double deviationFactor, int period, int deviationPeriod)
 		{
-			return indicator.BigCandle(Input, deviationFactor, period);
+			return indicator.BigCandle(Input, deviationFactor, period, deviationPeriod);
 		}
 
-		public Indicators.BigCandle BigCandle(ISeries<double> input , int deviationFactor, int period)
+		public Indicators.BigCandle BigCandle(ISeries<double> input , double deviationFactor, int period, int deviationPeriod)
 		{
-			return indicator.BigCandle(input, deviationFactor, period);
+			return indicator.BigCandle(input, deviationFactor, period, deviationPeriod);
 		}
 	}
 }
