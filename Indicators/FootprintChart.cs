@@ -89,25 +89,107 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public double Volume { get; set; }
             public int Id { get; set; }
         }
+		
+		public class FootprintBar
+		{
+			public double Volume {get; set;}
+			public double SessionVolume {get; set;}
+			public double Delta {get; set;}
+			public double SessionDelta {get;set;}
+			public double LastHit {get;set;}
+			public  Dictionary<double, BidAskVolume> Footprints {get;set;}
+			
+			public FootprintBar(FootprintBar previous)
+			{
+				Footprints = new Dictionary<double, BidAskVolume>();
+				SessionVolume = previous.SessionVolume;
+				SessionDelta = previous.SessionDelta;
+				Volume = 0;
+				Delta = 0;
+				LastHit = 0;
+			}
+			
+			public FootprintBar()
+			{
+				Footprints = new Dictionary<double, BidAskVolume>();
+				SessionVolume = 0;
+				SessionDelta = 0;
+				Volume = 0;
+				Delta = 0;
+				LastHit = 0;
+			}
+			
+		
+			public void AddAskVolume(double price, double volume)
+			{
+				BidAskVolume val;
+				
+				if (Footprints.TryGetValue(price, out val))
+			    {
+			        double askVolume = val.askVolume + volume;
+					double bidVolume = val.bidVolume;
+					double currentVolume = val.currentVolume + volume;	
+					
+					Footprints[price] = new BidAskVolume(currentVolume, askVolume, bidVolume, price);
+			    }
+			    else
+			    {
+			        Footprints.Add(price, new BidAskVolume(volume, volume, 0, price));
+			    }
+				
+				Volume = Volume + volume;
+				SessionVolume = SessionVolume + volume;
+				Delta = Delta + volume;
+				SessionDelta = SessionDelta + volume;				
+			}
+			
+			public void AddBidVolume(double price, double volume)
+			{
+				BidAskVolume val;
+				
+				if (Footprints.TryGetValue(price, out val))
+			    {
+					double bidVolume = val.bidVolume + volume;
+					double askVolume = val.askVolume;
+					double currentVolume = val.currentVolume + volume;
+					Footprints[price] = new BidAskVolume(currentVolume, askVolume, bidVolume, price);
+				}
+				else
+				{
+					Footprints.Add(price, new BidAskVolume(volume, 0, volume, price));
+			    }
+				
+				Volume = Volume + volume;
+				SessionVolume = SessionVolume + volume;
+				Delta = Delta - volume;
+				SessionDelta = SessionDelta - volume;				
+			}
+		}
 				
 		public struct BidAskVolume
 		{
 			public double currentVolume;
 			public double askVolume;
 			public double bidVolume;
+			public double Price;
 			
-			public BidAskVolume(double cv, double av, double bv)
+			public BidAskVolume(double cv, double av, double bv, double price)
 			{
 				currentVolume = cv;
 				askVolume = av;
 				bidVolume = bv;
+				Price = price;
 				
 			}
 		}
 		
-		private List<ABV> baseBAVList = new List<ABV>();
+		
+		                                                       
+		private FootprintBar CurrentFootprint = new FootprintBar();
+		private List<FootprintBar> FootprintBars = new List<FootprintBar>();
+		
 		private Dictionary<double, BidAskVolume> bidAskVolume = new Dictionary<double, BidAskVolume>();
-        
+		
 		double tmpAskVolume;
 		double tmpBidVolume;
 		double tmpCurrentVolume;
@@ -116,8 +198,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		double barVolume;			// bar volume
 		double barDelta;			// bar delta
-		double sessionVolume = 0;	// session volume
-		double sessionDelta = 0;	// session delta
 		double lastHit = 0;			// meant to show(text colour) if it was a buy or sell on the close of each bar   ... current bar[0] ok but not previous closes .... under construction
 		
 		#endregion
@@ -174,7 +254,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowWicks 					= true;
 			}
 			else if (State == State.Configure)
-			{
+			{		
 				setChartProperties = true;
 							
 				// create a better display name
@@ -193,69 +273,45 @@ namespace NinjaTrader.NinjaScript.Indicators
 							
 				lastHit=0;
 
-				
-				if (IsFirstTickOfBar)
-				{
-					if (bidAskVolume.Count > 0)
-					{
-						foreach (KeyValuePair<double, BidAskVolume> kvp in bidAskVolume)
-			            {
-			                ABV tmp = new ABV();
-			                tmp.Id = CurrentBar - 1;
-			                tmp.Price = kvp.Key;
-			                tmp.askVolume = kvp.Value.askVolume;
-			                tmp.bidVolume = kvp.Value.bidVolume;
-							tmp.Volume = kvp.Value.currentVolume;
-			                baseBAVList.Add(tmp);
-			            }			
-					}
-					bidAskVolume.Clear();
-				}
-				
 				if (e.Price >= e.Ask)
-				{
-					if (bidAskVolume.ContainsKey(e.Price))
-					{						
-						tmpBidVolume = bidAskVolume[e.Price].bidVolume;
-						tmpAskVolume = bidAskVolume[e.Price].askVolume + e.Volume;
-						tmpCurrentVolume = bidAskVolume[e.Price].currentVolume;
-						bidAskVolume[e.Price] = new BidAskVolume(tmpCurrentVolume, tmpAskVolume, tmpBidVolume);
-					}
-					else
-					{					
-						tmpAskVolume = e.Volume;
-						tmpBidVolume = 0;
-						tmpCurrentVolume = e.Volume;
-						bidAskVolume.Add(e.Price, new BidAskVolume(tmpCurrentVolume, tmpAskVolume, tmpBidVolume));
-					}
-					lastHit=1;
+				{					
+					CurrentFootprint.AddAskVolume(e.Price, e.Volume);
 					
 					if(ShowCurrentPrice)
 					Draw.HorizontalLine(this, "CurrPrice", false, e.Price, LineShortColor, LineStyle, LineWidth);
 				}
 				else if(e.Price <= e.Bid)
 				{
-					if (bidAskVolume.ContainsKey(e.Price))
-					{
-						tmpBidVolume = bidAskVolume[e.Price].bidVolume + e.Volume;
-						tmpAskVolume = bidAskVolume[e.Price].askVolume;
-						tmpCurrentVolume = bidAskVolume[e.Price].currentVolume;
-						bidAskVolume[e.Price] = new BidAskVolume(tmpCurrentVolume, tmpAskVolume, tmpBidVolume);
-					}
-					else
-					{					
-						tmpAskVolume = 0;
-						tmpBidVolume = e.Volume;
-						tmpCurrentVolume = e.Volume;
-						bidAskVolume.Add(e.Price, new BidAskVolume(tmpCurrentVolume, tmpAskVolume, tmpBidVolume));
-					}					
-				lastHit=2;
-				if(ShowCurrentPrice)
-				Draw.HorizontalLine(this, "CurrPrice", false, e.Price, LineLongColor, LineStyle, LineWidth);
-				
+					CurrentFootprint.AddBidVolume(e.Price, e.Volume);
+					
+					if(ShowCurrentPrice)
+					Draw.HorizontalLine(this, "CurrPrice", false, e.Price, LineLongColor, LineStyle, LineWidth);
 				}
 			}
 		}
+		
+		protected override void OnBarUpdate()
+		{
+			if (!Bars.IsTickReplay)
+				Draw.TextFixed(this, "warning msg", "WARNING: Tick Replay must be enabled for FootPrintChart to display historical values.", TextPosition.TopRight);
+
+			BarBrushes[0] = Brushes.Transparent;
+			CandleOutlineBrushes[0] = Brushes.Transparent;
+			
+			if (IsFirstTickOfBar)
+			{
+				if (Bars.IsFirstBarOfSession)
+				{
+					CurrentFootprint = new FootprintBar();
+					FootprintBars.Add(CurrentFootprint);
+				}
+				else
+				{
+					CurrentFootprint = new FootprintBar(CurrentFootprint);
+					FootprintBars.Add(CurrentFootprint);
+				}				
+			}
+		}		
 
 		public override void OnCalculateMinMax()
 		{			 
@@ -305,12 +361,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 														 textFont.Italic ? SharpDX.DirectWrite.FontStyle.Italic : SharpDX.DirectWrite.FontStyle.Normal,
 														 (float)textFont.Size); 
 			
-
-			double sessionDelta = 0;
-			double sessionVolume = 0;
-			
 			for (chartBarIndex = ChartBars.FromIndex; chartBarIndex <= ChartBars.ToIndex; chartBarIndex++)
-		    {
+		    {	
+				Print("Drawing bar: " + chartBarIndex);
+				
 				// current bar prices
 				double barClosePrice = ChartBars.Bars.GetClose(chartBarIndex);
 		        double barOpenPrice	 = ChartBars.Bars.GetOpen(chartBarIndex);
@@ -332,10 +386,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Vector2	point0	= new Vector2();
 				Vector2	point1	= new Vector2();
 				RectangleF rect	= new RectangleF();
-				
-				// get the ABV list for this chart bar
-				IEnumerable<ABV> currentBAVList = baseBAVList.Where(p => p.Id == chartBarIndex);
-					
+									
 				// calculate the physical font size for the selected font
 				GlyphTypeface gtf = new GlyphTypeface();
 				System.Windows.Media.Typeface t_face = new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily(textFont.Family.ToString()), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);				
@@ -347,7 +398,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				// init totalDelta and maxVolumePrice
 				double totalDelta = 0;
-				double maxVolumePrice = 0;				
+				double maxVolumePrice = 0;	
+				
+				double sessionDelta = 0;
+				double sessionVolume = 0;
 				
 // BARS
 				#region FootPrint Bars
@@ -358,7 +412,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					double maxBidVolume = double.MinValue;
 					double footPrintBarTopVolume = double.MinValue;
 					
-					foreach (KeyValuePair<double, BidAskVolume> kvp in bidAskVolume)
+					foreach (KeyValuePair<double, BidAskVolume> kvp in CurrentFootprint.Footprints)
 	            	{
 						if ((kvp.Value.askVolume + kvp.Value.bidVolume) > maxVolume) {
 							maxVolume = kvp.Value.askVolume + kvp.Value.bidVolume;
@@ -372,16 +426,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 							maxBidVolume = Math.Max(maxBidVolume, (kvp.Value.askVolume + kvp.Value.bidVolume));
 							maxAskVolume = Math.Max(maxAskVolume, (kvp.Value.askVolume - kvp.Value.bidVolume));
 						}
-					}
-										
-					foreach (KeyValuePair<double, BidAskVolume> kvp in bidAskVolume)
-					{
-						int y = chartScale.GetYByValue(kvp.Key) - (int)(fontOffset);
-						
-						// create totalDelta, currentVolume, and delta values
-						totalDelta += kvp.Value.askVolume;
-						totalDelta -= kvp.Value.bidVolume;
-						barVolume = kvp.Value.askVolume + kvp.Value.bidVolume;						
+					
+						int y = chartScale.GetYByValue(kvp.Key) - (int)(fontOffset);							
 						
 						// determine the bar opacity
 						double curr_percent = 100 * (barVolume / maxVolume);
@@ -446,18 +492,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 							RenderTarget.DrawText(askStr, footPrintBarFont, new RectangleF(barX + 5, y, (float)chartControl.BarWidth, (float)(rectangleOffset)),
 								FootBrintParTextColor.ToDxBrush(RenderTarget));
 					}	
-					
-					sessionDelta += totalDelta;
-					sessionVolume += barVolume;
 				}
 				else
 				{
 					double maxVolume = double.MinValue;			
 					double maxAskVolume = double.MinValue;
 					double maxBidVolume = double.MinValue;
+							
+					Print("break1");
+					Print(FootprintBars.Count);
+					try
+					{
+					Print(FootprintBars[chartBarIndex-1].Footprints.Count);
+					}
+					catch(Exception e)
+					{
+						Print(e.Message);
+					}
 					
-					foreach (ABV t in currentBAVList)
-	            	{						
+					foreach (KeyValuePair<double, BidAskVolume> kvp in FootprintBars[chartBarIndex-1].Footprints)
+	            	{
+						Print("break2");
+						BidAskVolume t = kvp.Value;
+						
 						if ((t.askVolume + t.bidVolume) > maxVolume) {
 							maxVolume = t.askVolume + t.bidVolume;
 							maxVolumePrice = t.Price;
@@ -470,10 +527,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 							maxBidVolume = Math.Max(maxBidVolume, (t.bidVolume + t.askVolume));
 							maxAskVolume = Math.Max(maxAskVolume, (t.askVolume - t.askVolume));
 						}
-					}
-										
-					foreach (ABV t in currentBAVList)
-	            	{	
+					
 						// y value of where our drawing will start minus our fontOffset
 						int y = chartScale.GetYByValue(t.Price) - (int)(fontOffset);
 												
@@ -543,10 +597,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 							RenderTarget.DrawText(askStr, footPrintBarFont, new RectangleF(barX + 5, y, (float)chartControl.BarWidth, (float)(rectangleOffset)),
 								FootBrintParTextColor.ToDxBrush(RenderTarget));	
 					}
-					
-					sessionDelta += totalDelta;
-					sessionVolume += barVolume;
 				}
+				Print("break3");
 				#endregion
 
 				#region CandleStick Bars
@@ -709,7 +761,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 									
 					// draw the bar delta string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(totalDelta.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].Delta.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
@@ -730,8 +782,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 					
 					// draw the session delta string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(sessionDelta.ToString(), footPrintBarFont, new RectangleF(xyBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
-							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
+
+					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].SessionDelta.ToString(), footPrintBarFont, new RectangleF(xyBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+						FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
 				
@@ -748,7 +801,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 									
 					// draw the bar volume string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(barVolume.ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].Volume.ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
@@ -766,23 +819,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 									
 					// draw the session volume string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(sessionVolume.ToString(), footPrintBarFont, new RectangleF(xyBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].SessionVolume.ToString(), footPrintBarFont, new RectangleF(xyBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
+				
+				Print("drew bar: " + chartBarIndex);
 				#endregion
 			}
 		}
-
-		protected override void OnBarUpdate()
-		{
-			if (!Bars.IsTickReplay)
-				Draw.TextFixed(this, "warning msg", "WARNING: Tick Replay must be enabled for FootPrintChart to display historical values.", TextPosition.TopRight);
-
-			BarBrushes[0] = Brushes.Transparent;
-			CandleOutlineBrushes[0] = Brushes.Transparent;
-		}
-
-		
 		
 		#region Properties
 		
