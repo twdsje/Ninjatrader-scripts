@@ -94,11 +94,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			
 			if(Trend[0] > Close[0])
 			{					
-				FadeLongs();		
+				FadeLongs();		//53.4
 			}
 			else
 			{
-				//FadeShorts(); //48.22
+				FadeShorts(); //48.22
 				//FollowLongs(); 8
 				//FollowShorts();
 			}
