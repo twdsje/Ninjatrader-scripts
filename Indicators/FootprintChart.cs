@@ -80,15 +80,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		ClosePriceEnum closePriceIndicator = ClosePriceEnum.TextColor;
 		HighestVolumeEnum highestVolumeIndicator = HighestVolumeEnum.Rectangle;
 		NinjaTrader.Gui.Tools.SimpleFont textFont = new NinjaTrader.Gui.Tools.SimpleFont("Consolas", 12);
- 
-		public class ABV
-        {
-            public double Price { get; set; }
-            public double askVolume { get; set; }
-            public double bidVolume { get; set; }
-			public double Volume { get; set; }
-            public int Id { get; set; }
-        }
 		
 		public class FootprintBar
 		{
@@ -96,8 +87,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			public double SessionVolume {get; set;}
 			public double Delta {get; set;}
 			public double SessionDelta {get;set;}
+			
+			public string BarDelta1;// {get;set;}
+			
 			public double LastHit {get;set;}
-			public  Dictionary<double, BidAskVolume> Footprints {get;set;}
+			public Dictionary<double, BidAskVolume> Footprints {get;set;}
 			
 			public FootprintBar(FootprintBar previous)
 			{
@@ -113,9 +107,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				Footprints = new Dictionary<double, BidAskVolume>();
 				SessionVolume = 0;
-				SessionDelta = 0;
 				Volume = 0;
 				Delta = 0;
+				BarDelta1 = "Bar Delta";
 				LastHit = 0;
 			}
 			
@@ -136,7 +130,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			    {
 			        Footprints.Add(price, new BidAskVolume(volume, volume, 0, price));
 			    }
-				
+	
 				Volume = Volume + volume;
 				SessionVolume = SessionVolume + volume;
 				Delta = Delta + volume;
@@ -162,7 +156,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Volume = Volume + volume;
 				SessionVolume = SessionVolume + volume;
 				Delta = Delta - volume;
-				SessionDelta = SessionDelta - volume;				
+				SessionDelta = SessionDelta - volume;	
 			}
 		}
 				
@@ -181,8 +175,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Price = price;
 				
 			}
-		}
-		
+		}		
 		
 		                                                       
 		private FootprintBar CurrentFootprint = new FootprintBar();
@@ -194,7 +187,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		double tmpBidVolume;
 		double tmpCurrentVolume;
  		int	   chartBarIndex;
-
 		
 		double barVolume;			// bar volume
 		double barDelta;			// bar delta
@@ -213,7 +205,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				
 				Description							= @"Displays candlestick bars with coloured histogram of buy & sell volumes and more...";
-				Name								= "FootprintChart";
+				Name								= "FootprintChart";		// by Seth 20.12.2016
 				Calculate							= Calculate.OnEachTick;
 				IsOverlay							= true;
 				DisplayInDataBox					= true;
@@ -268,7 +260,20 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
 
 		protected override void OnMarketData(MarketDataEventArgs e)
-		{	
+		{
+			
+			
+//				if (IsFirstTickOfBar)
+			
+//				if (Bars.IsFirstBarOfSession)
+//				{
+//////					CurrentFootprint = new FootprintBar();
+//////					FootprintBars.Add(CurrentFootprint);
+//				SessionDelta = 0;
+//				}
+		
+			
+			
 			if (e.MarketDataType == MarketDataType.Last){
 							
 				lastHit=0;
@@ -405,7 +410,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 // BARS
 				#region FootPrint Bars
-				if (chartBarIndex == ChartBars.Count-1)
+				if (chartBarIndex == ChartBars.Count)
 				{					
 					double maxVolume = double.MinValue;;
 					double maxAskVolume = double.MinValue;
@@ -510,7 +515,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 						Print(e.Message);
 					}
 					
-					foreach (KeyValuePair<double, BidAskVolume> kvp in FootprintBars[chartBarIndex-1].Footprints)
+					foreach (KeyValuePair<double, BidAskVolume> kvp in FootprintBars[chartBarIndex].Footprints)
 	            	{
 						Print("break2");
 						BidAskVolume t = kvp.Value;
@@ -715,33 +720,43 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 					// set the volume background color
 					volumeColor = BarVolumeBackgroundColor.ToDxBrush(RenderTarget);
-						
-					float xxBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex ) + (float)(chartControl.BarWidth);
 					
-					RenderTarget.FillRectangle(new RectangleF(xxBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
-					RenderTarget.FillRectangle(new RectangleF(xxBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
-					RenderTarget.FillRectangle(new RectangleF(xxBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
-					RenderTarget.FillRectangle(new RectangleF(xxBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
+					
+						
+				float xBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex) + (float)(chartControl.BarWidth);
+	//				
+//					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), volumeColor);
+//					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
+//					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
+//					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 4), (float)rectangleOffset), volumeColor);
 									
 					// draw the Bar Delta text string
-					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText("Bar Delta".ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
-							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
+//					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+//					RenderTarget.DrawText(FootprintBars[chartBarIndex].ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth), (float)rectangleOffset),
+//							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 					
-					// draw the Session Delta text string
-					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText("Session Delta".ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
-							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
+//					// draw the Session Delta text string
+//		//				if(xBar != chartBarIndex)
 					
-					// draw the Bar Volume text string
-					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText("Bar Volume".ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
-							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 					
-					// draw the Session Volume text string
-					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText("Session Volume".ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
-							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
+	// testing ideas
+	//				RenderTarget.FillRectangle(new RectangleF(FootprintBars[chartBarIndex].BarDelta1, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), volumeColor);
+
+					
+					
+//					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+//					RenderTarget.DrawText("Session Delta".ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
+//							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
+					
+//					// draw the Bar Volume text string
+//					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+//					RenderTarget.DrawText("Bar Volume".ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
+//							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
+					
+//					// draw the Session Volume text string
+//					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
+//					RenderTarget.DrawText("Session Volume".ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 4), (float)rectangleOffset),
+//							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
 				
@@ -755,13 +770,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					else
 						deltaColor = BarDeltaDownColor.ToDxBrush(RenderTarget);
 						
-					float xBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth + 13);
+					float xBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth+4 );
 					
 					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), deltaColor);
 									
 					// draw the bar delta string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].Delta.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex].Delta.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 57), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
@@ -776,14 +791,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 					else
 						deltaColor = SessionDeltaDownColor.ToDxBrush(RenderTarget);
 						
-					float xyBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth + 13);
+					float xBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex-1) + (float)(chartControl.BarWidth+4);
 					
-					RenderTarget.FillRectangle(new RectangleF(xyBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), deltaColor);
+					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), deltaColor);
 					
 					// draw the session delta string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
 
-					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].SessionDelta.ToString(), footPrintBarFont, new RectangleF(xyBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex].SessionDelta.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 42), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 						FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
@@ -795,13 +810,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					// set the volume background color
 					volumeColor = BarVolumeBackgroundColor.ToDxBrush(RenderTarget);
 						
-					float xxBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth + 13);
+					float xBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth+4);
 					
-					RenderTarget.FillRectangle(new RectangleF(xxBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), volumeColor);
+					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), volumeColor);
 									
 					// draw the bar volume string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].Volume.ToString(), footPrintBarFont, new RectangleF(xxBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex].Volume.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 27), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				#endregion
@@ -813,13 +828,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					// set the volume background color
 					volumeColor = SessionVolumeBackgroundColor.ToDxBrush(RenderTarget);
 						
-					float xyBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth + 13);
+					float xBar = chartControl.GetXByBarIndex(ChartBars, chartBarIndex - 1) + (float)(chartControl.BarWidth+4);
 					
-					RenderTarget.FillRectangle(new RectangleF(xyBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), volumeColor);
+					RenderTarget.FillRectangle(new RectangleF(xBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 2), (float)rectangleOffset), volumeColor);
 									
 					// draw the session volume string
 					footPrintBarFont.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-					RenderTarget.DrawText(FootprintBars[chartBarIndex-1].SessionVolume.ToString(), footPrintBarFont, new RectangleF(xyBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
+					RenderTarget.DrawText(FootprintBars[chartBarIndex].SessionVolume.ToString(), footPrintBarFont, new RectangleF(xBar, (float)(ChartPanel.H - 12), (float)(chartControl.BarWidth * 2), (float)rectangleOffset),
 							FooterFontColor.ToDxBrush(RenderTarget), DrawTextOptions.None, MeasuringMode.GdiClassic);
 				}
 				
