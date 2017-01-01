@@ -20,9 +20,7 @@ using System.Xml.Serialization;
 namespace NinjaTrader.NinjaScript.SuperDomColumns
 {
 	
-	public enum VolumeSide {bid, ask};
-	
-	public class CurrentTrades : SuperDomColumn
+	public class NumTouches : SuperDomColumn
 	{
 		private readonly	object			barsSync				= new object();
 		private				bool			clearLoadingSent;
@@ -68,12 +66,6 @@ namespace NinjaTrader.NinjaScript.SuperDomColumns
 						if (barsUpdate.BarsSeries.GetIsFirstBarOfSession(i))
 						{
 							// If a new session starts, clear out the old values and start fresh
-							maxVolume		= 0;
-							totalBuyVolume	= 0;
-							totalLastVolume	= 0;
-							totalSellVolume	= 0;
-							Sells.Clear();
-							Buys.Clear();
 							LastVolumes.Clear();
 						}
 
@@ -82,40 +74,20 @@ namespace NinjaTrader.NinjaScript.SuperDomColumns
 						double	close	= barsUpdate.BarsSeries.GetClose(i);
 						long	volume	= barsUpdate.BarsSeries.GetVolume(i);
 
-						if (ask != double.MinValue && close >= ask)
-						{
-							Buys.AddOrUpdate(close, volume, (price, oldVolume) => oldVolume + volume);
-							totalBuyVolume += volume;
-						}
-						else if (bid != double.MinValue && close <= bid)
-						{
-							Sells.AddOrUpdate(close, volume, (price, oldVolume) => oldVolume + volume);
-							totalSellVolume += volume;
-						}
-
-						
-						if((Bidask == VolumeSide.ask && lastBid != bid && close <= bid) || (Bidask == VolumeSide.bid && lastAsk != ask && close >= ask))
+						if(Bidask == VolumeSide.ask && lastBid != bid && close <= bid)
 						{
 							lastBid = bid;
-							lastAsk = ask;
-							lastClose = close;
 							
 							long newVolume;
-							LastVolumes.AddOrUpdate(close, newVolume = volume, (price, oldVolume) => newVolume = 0);
-							totalLastVolume += volume;
-
-							if (newVolume > maxVolume)
-								maxVolume = newVolume;
+							LastVolumes.AddOrUpdate(bid, newVolume = 1, (price, oldVolume) => newVolume = oldVolume + 1);
 						}
 						
-						if ((Bidask == VolumeSide.ask && close <= bid) || (Bidask == VolumeSide.bid && close >= ask))
+						if(Bidask == VolumeSide.bid && lastAsk != ask && close >= ask)
 						{
+							lastAsk = ask;
+							
 							long newVolume;
-							LastVolumes.AddOrUpdate(close, newVolume = volume, (price, oldVolume) => newVolume = oldVolume + volume);
-							totalLastVolume += volume;
-
-							if (newVolume > maxVolume)
-								maxVolume = newVolume;
+							LastVolumes.AddOrUpdate(ask, newVolume = 1, (price, oldVolume) => newVolume = oldVolume + 1);
 						}
 					}
 
@@ -215,11 +187,6 @@ namespace NinjaTrader.NinjaScript.SuperDomColumns
 							}
 							
 
-							double totalWidth = renderWidth * ((double)totalRowVolume / maxVolume); 
-							if (totalWidth - gridPen.Thickness >= 0)
-							{								
-								dc.DrawRectangle(BarColor, null, new Rect(0, verticalOffset + halfPenWidth, totalWidth == renderWidth ? totalWidth - gridPen.Thickness * 1.5 : totalWidth - halfPenWidth, rect.Height - gridPen.Thickness));
-							}
 							// Print volume value - remember to set MaxTextWidth so text doesn't spill into another column
 							if (totalRowVolume > 0)
 							{
@@ -285,7 +252,7 @@ namespace NinjaTrader.NinjaScript.SuperDomColumns
 		{
 			if (State == State.SetDefaults)
 			{
-				Name					= "CurrentTrades";
+				Name					= "Num Touches";
 				Buys					= new ConcurrentDictionary<double, long>();
 				BackColor				= Brushes.Transparent;
 				BarColor				= Application.Current.TryFindResource("brushVolumeColumnBackground") as Brush;
