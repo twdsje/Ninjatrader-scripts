@@ -1,0 +1,9 @@
+@*.cs
+*.dll
+*.resx
+AssemblyInfo.cs
+NinjaTrader.Custom.csproj
+NinjaTrader.Custom.xml
+NinjaTrader.Vendor.cs
+Resource.Designer.cs
+ResourceEnumConverter.cs
