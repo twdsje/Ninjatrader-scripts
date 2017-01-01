@@ -94,9 +94,7 @@ namespace NinjaTrader.NinjaScript.SuperDomColumns
 						}
 
 						
-						if((Bidask == VolumeSide.bid && lastBid != bid && close <= bid) || (Bidask == VolumeSide.ask && lastAsk != ask && close >= ask))
-						//if(lastBid != bid && lastAsk != ask && lastClose != close)
-						//if(lastClose != close)
+						if((Bidask == VolumeSide.ask && lastBid != bid && close <= bid) || (Bidask == VolumeSide.bid && lastAsk != ask && close >= ask))
 						{
 							lastBid = bid;
 							lastAsk = ask;
@@ -110,7 +108,7 @@ namespace NinjaTrader.NinjaScript.SuperDomColumns
 								maxVolume = newVolume;
 						}
 						
-						if ((Bidask == VolumeSide.bid && close <= bid) || (Bidask == VolumeSide.ask && close >= ask))
+						if ((Bidask == VolumeSide.ask && close <= bid) || (Bidask == VolumeSide.bid && close >= ask))
 						{
 							long newVolume;
 							LastVolumes.AddOrUpdate(close, newVolume = volume, (price, oldVolume) => newVolume = oldVolume + volume);
