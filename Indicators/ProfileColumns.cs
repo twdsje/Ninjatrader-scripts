@@ -276,7 +276,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 //me   move Profile to the left
 //			int   rx = chartControl.CanvasRight;
-			int   rx = chartControl.CanvasRight-280;
+			int   rx = chartControl.CanvasRight;
 			
 			
 			
