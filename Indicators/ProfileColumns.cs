@@ -19,6 +19,8 @@ using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.DrawingTools;
+using SharpDX;
+using SharpDX.DirectWrite;
 #endregion
 
 //This namespace holds Indicators in this folder and is required. Do not change it. 
@@ -49,6 +51,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public class Profile
 		{
 			public Dictionary<double, RowData> ProfileData;
+			public double v = 0.0;
 
 			public Profile()
 			{
@@ -336,7 +339,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			System.Windows.Media.Typeface tFace = new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily(sf.Family.ToString()), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
             tFace.TryGetGlyphTypeface(out gtf);
 			
-			foreach(KeyValuePair<double, RowData> rd in currProfile)
+			foreach(KeyValuePair<double, RowData> rd in currProfile.ProfileData)
 			{
 				curPrc = Instrument.MasterInstrument.RoundToTickSize(rd.Key);
 				
