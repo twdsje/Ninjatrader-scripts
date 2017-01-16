@@ -26,9 +26,9 @@ using SharpDX.DirectWrite;
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public class ProfileColumns : Indicator
-	{
 			
+	public class ProfileColumns : Indicator
+	{	
 		public struct RowData
 		{
 			public double TotalVolume;
@@ -94,6 +94,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}		
 		
+
+		
 		#region Variables
 		
 //		private int rightsidemargin = 600;
@@ -114,9 +116,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double dif = 0.0;
 		
 		// ---
-		
-		private bool 	 setDate = false;
-		private DateTime getDate;
 		private DateTime lastRender;
 		
 		// ---
@@ -128,12 +127,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		private Series<Profile> Profiles;
 		
+		private SessionIterator sessionIterator;
+		
+		public int ColumnIndex = 0;
+		
 		#endregion
 		
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
-			{
+			{				
 				Description					= "Draws profile as a colum next to your chart.";
 				Name						= "ProfileColumns";
 				Calculate					= Calculate.OnEachTick;
@@ -142,9 +145,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DrawOnPricePanel			= true;
 				PaintPriceMarkers			= false;
 				IsSuspendedWhileInactive	= false;
+				BarsRequiredToPlot			= 2;
 				ScaleJustification			= ScaleJustification.Right;
-				
-				maxDays			 = 3;
 				
 //me
 //				BarDeltaDownColor 					= Brushes.Pink;
@@ -199,19 +201,59 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if(!Bars.IsTickReplay)
 				{
 					Draw.TextFixed(this, "tickReplay", "Please enable Tick Replay!", TextPosition.TopRight);
+				}				
+				
+				//AddDataSeries(BarsPeriodType.Day, 1);
+				sessionIterator = new SessionIterator(Bars);
+				
+				ChartObjectCollection<NinjaTrader.Gui.NinjaScript.IndicatorRenderBase> indicatorCollection = ChartControl.Indicators;
+				
+				foreach (NinjaTrader.Gui.NinjaScript.IndicatorRenderBase indicator in indicatorCollection)
+  				{
+					if(indicator is ProfileColumns && indicator != this && indicator.State != State.SetDefaults)
+					{
+						ColumnIndex++;
+					}
 				}
 				
-				if(!setDate)
-				{
-					getDate = getStartDate((maxDays - 1) * -1);
-					setDate = true;
-				}
+				Print("I am: " + ColumnIndex.ToString());
+				
+				ChartControl.Properties.BarMarginRight = 280 * (ColumnIndex+1);
+				
 			}
+			
+						
 		}
 
 		protected override void OnBarUpdate()
 		{
-			//Add your custom indicator logic here.
+			
+			if(CurrentBars[0] <= BarsRequiredToPlot) return;
+
+			//Reset profile on session week or day.
+			if(IsFirstTickOfBar && ResetProfileOn != Timeframe.Never)
+			{
+				DateTime previous = sessionIterator.GetTradingDay(Time[1]);
+				DateTime current = sessionIterator.GetTradingDay(Time[0]);
+				
+				//Reset profile on daily basis.
+				if(ResetProfileOn == Timeframe.Session && !current.DayOfWeek.Equals(previous.DayOfWeek))
+				{				
+					myProfile = new Profile();
+				}
+				
+				//Reset profile on weekly basis.
+				else if(ResetProfileOn == Timeframe.Week && current.DayOfWeek.CompareTo(previous.DayOfWeek) < 0)
+				{
+					myProfile = new Profile();
+				}
+				
+				//Reset profile on monthly basis.
+				else if(ResetProfileOn != Timeframe.Month && !current.Month.Equals(previous.Month))
+				{
+					myProfile = new Profile();
+				}
+			}
 		}
 		
 		protected override void OnMarketData(MarketDataEventArgs e)
@@ -219,7 +261,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (e.MarketDataType == MarketDataType.Last)
 			{
 				if (e.Price >= e.Ask)
-				{					
+				{		
 					myProfile.AddAskVolume(e.Price, e.Volume);
 				}
 				else if(e.Price <= e.Bid)
@@ -231,12 +273,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		// OnRender
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
-		{
+		{			
 			if(Bars == null || Bars.Instrument == null || IsInHitTest || CurrentBar < 1) { return; }
 			
 			lastRender = DateTime.Now;
 			
-			base.OnRender(chartControl, chartScale);
+			base.OnRender(chartControl, chartScale);			
 			
 			try
         	{
@@ -244,14 +286,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			catch(Exception e)
 	        {
-	            Console.WriteLine("FootPrintV2: '{0}'", e);
+
+	            Print("FootPrintV2: " + e.Message);
 	        }
 		}
 		
 		#region drawProfile
 		private void drawProfile(ChartControl chartControl, ChartScale chartScale)
 		{
-			
 			Profile currProfile = myProfile;
 			
 //			if(Profiles.IsValidDataPointAt(ChartBars.ToIndex))
@@ -275,8 +317,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			
 //me   move Profile to the left
-//			int   rx = chartControl.CanvasRight;
-			int   rx = chartControl.CanvasRight;
+			//int   rx = chartControl.CanvasRight - 280;
+			int   rx = chartControl.CanvasRight - (280 * ColumnIndex);
+			
 			
 			
 			
@@ -289,7 +332,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			double poc = getPoc(currProfile.ProfileData);
 			double dta = getDelta(currProfile.ProfileData);
-			double prc = Bars.GetClose(ChartBars.ToIndex);
+			
+			
+			double prc = BarsArray[0].GetClose(ChartBars.ToIndex);
 			
 			double maxPrc = currProfile.ProfileData.Keys.Max();
 			double minPrc = currProfile.ProfileData.Keys.Min();
@@ -339,8 +384,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			System.Windows.Media.Typeface tFace = new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily(sf.Family.ToString()), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
             tFace.TryGetGlyphTypeface(out gtf);
 			
+			
 			foreach(KeyValuePair<double, RowData> rd in currProfile.ProfileData)
 			{
+				
 				curPrc = Instrument.MasterInstrument.RoundToTickSize(rd.Key);
 				
 				if(!currProfile.ProfileData.ContainsKey(curPrc))
@@ -386,7 +433,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					rect.Width  = rect.Width  + 1f;
 					rect.Height = rect.Height + 1f;
 				}
-				
+
 ////me			//max buy volume	
 				if(currProfile.ProfileData[curPrc].AskVolume >= 100)
 				{
@@ -1045,8 +1092,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			currBrush.Dispose();
 			textBrush.Dispose();
 			
-			RenderTarget.AntialiasMode = oldAntialiasMode;
-		
+			RenderTarget.AntialiasMode = oldAntialiasMode;		
 		}
 		#endregion
 		
@@ -1352,14 +1398,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 
 		#region Properties
-		
-		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
-		[Display(Name = "Max. Days", GroupName = "Parameters", Order = 0)]
-		public int maxDays
-		{ get; set; }
-		
-		// ---
 		
 		[NinjaScriptProperty]
 		[XmlIgnore]
@@ -1684,6 +1722,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 //				[Display(Name="RayLength", Description="Line Length when not extended (in number of bars)", Order=7, GroupName="Parameters")]
 //				public int RayLength
 //				{ get; set; }
+				
+				[NinjaScriptProperty]
+				[Display(Name="ResetProfileOn", Description="Reset Profile On", Order=0, GroupName="General")]
+				public Timeframe ResetProfileOn
+				{ get; set; }
+				
 		#endregion
 		
 		
@@ -1692,6 +1736,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 	}
 }
 
+public enum Timeframe { Session, Week, Month, Never };
+
 #region NinjaScript generated code. Neither change nor remove.
 
 namespace NinjaTrader.NinjaScript.Indicators
@@ -1699,18 +1745,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private ProfileColumns[] cacheProfileColumns;
-		public ProfileColumns ProfileColumns(int maxDays, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public ProfileColumns ProfileColumns(Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth, Timeframe resetProfileOn)
 		{
-			return ProfileColumns(Input, maxDays, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth);
+			return ProfileColumns(Input, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth, resetProfileOn);
 		}
 
-		public ProfileColumns ProfileColumns(ISeries<double> input, int maxDays, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public ProfileColumns ProfileColumns(ISeries<double> input, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth, Timeframe resetProfileOn)
 		{
 			if (cacheProfileColumns != null)
 				for (int idx = 0; idx < cacheProfileColumns.Length; idx++)
-					if (cacheProfileColumns[idx] != null && cacheProfileColumns[idx].maxDays == maxDays && cacheProfileColumns[idx].cellColor == cellColor && cacheProfileColumns[idx].highColor == highColor && cacheProfileColumns[idx].currColor == currColor && cacheProfileColumns[idx].markColor == markColor && cacheProfileColumns[idx].markOpacity == markOpacity && cacheProfileColumns[idx].textColor == textColor && cacheProfileColumns[idx].textSize == textSize && cacheProfileColumns[idx].askColor == askColor && cacheProfileColumns[idx].bidColor == bidColor && cacheProfileColumns[idx].volumeColor == volumeColor && cacheProfileColumns[idx].highestvolumeColor == highestvolumeColor && cacheProfileColumns[idx].pocColor == pocColor && cacheProfileColumns[idx].minImbalance == minImbalance && cacheProfileColumns[idx].minRatio == minRatio && cacheProfileColumns[idx].autoScroll == autoScroll && cacheProfileColumns[idx].setOulineColor == setOulineColor && cacheProfileColumns[idx].showDelta == showDelta && cacheProfileColumns[idx].showBidAsk == showBidAsk && cacheProfileColumns[idx].showProfile == showProfile && cacheProfileColumns[idx].showPoc == showPoc && cacheProfileColumns[idx].showUnfinished == showUnfinished && cacheProfileColumns[idx].fadeCells == fadeCells && cacheProfileColumns[idx].fadeText == fadeText && cacheProfileColumns[idx].indicatorVersion == indicatorVersion && cacheProfileColumns[idx].ShowCurrentPrice == showCurrentPrice && cacheProfileColumns[idx].LineStyle == lineStyle && cacheProfileColumns[idx].LineWidth == lineWidth && cacheProfileColumns[idx].EqualsInput(input))
+					if (cacheProfileColumns[idx] != null && cacheProfileColumns[idx].cellColor == cellColor && cacheProfileColumns[idx].highColor == highColor && cacheProfileColumns[idx].currColor == currColor && cacheProfileColumns[idx].markColor == markColor && cacheProfileColumns[idx].markOpacity == markOpacity && cacheProfileColumns[idx].textColor == textColor && cacheProfileColumns[idx].textSize == textSize && cacheProfileColumns[idx].askColor == askColor && cacheProfileColumns[idx].bidColor == bidColor && cacheProfileColumns[idx].volumeColor == volumeColor && cacheProfileColumns[idx].highestvolumeColor == highestvolumeColor && cacheProfileColumns[idx].pocColor == pocColor && cacheProfileColumns[idx].minImbalance == minImbalance && cacheProfileColumns[idx].minRatio == minRatio && cacheProfileColumns[idx].autoScroll == autoScroll && cacheProfileColumns[idx].setOulineColor == setOulineColor && cacheProfileColumns[idx].showDelta == showDelta && cacheProfileColumns[idx].showBidAsk == showBidAsk && cacheProfileColumns[idx].showProfile == showProfile && cacheProfileColumns[idx].showPoc == showPoc && cacheProfileColumns[idx].showUnfinished == showUnfinished && cacheProfileColumns[idx].fadeCells == fadeCells && cacheProfileColumns[idx].fadeText == fadeText && cacheProfileColumns[idx].indicatorVersion == indicatorVersion && cacheProfileColumns[idx].ShowCurrentPrice == showCurrentPrice && cacheProfileColumns[idx].LineStyle == lineStyle && cacheProfileColumns[idx].LineWidth == lineWidth && cacheProfileColumns[idx].ResetProfileOn == resetProfileOn && cacheProfileColumns[idx].EqualsInput(input))
 						return cacheProfileColumns[idx];
-			return CacheIndicator<ProfileColumns>(new ProfileColumns(){ maxDays = maxDays, cellColor = cellColor, highColor = highColor, currColor = currColor, markColor = markColor, markOpacity = markOpacity, textColor = textColor, textSize = textSize, askColor = askColor, bidColor = bidColor, volumeColor = volumeColor, highestvolumeColor = highestvolumeColor, pocColor = pocColor, minImbalance = minImbalance, minRatio = minRatio, autoScroll = autoScroll, setOulineColor = setOulineColor, showDelta = showDelta, showBidAsk = showBidAsk, showProfile = showProfile, showPoc = showPoc, showUnfinished = showUnfinished, fadeCells = fadeCells, fadeText = fadeText, indicatorVersion = indicatorVersion, ShowCurrentPrice = showCurrentPrice, LineStyle = lineStyle, LineWidth = lineWidth }, input, ref cacheProfileColumns);
+			return CacheIndicator<ProfileColumns>(new ProfileColumns(){ cellColor = cellColor, highColor = highColor, currColor = currColor, markColor = markColor, markOpacity = markOpacity, textColor = textColor, textSize = textSize, askColor = askColor, bidColor = bidColor, volumeColor = volumeColor, highestvolumeColor = highestvolumeColor, pocColor = pocColor, minImbalance = minImbalance, minRatio = minRatio, autoScroll = autoScroll, setOulineColor = setOulineColor, showDelta = showDelta, showBidAsk = showBidAsk, showProfile = showProfile, showPoc = showPoc, showUnfinished = showUnfinished, fadeCells = fadeCells, fadeText = fadeText, indicatorVersion = indicatorVersion, ShowCurrentPrice = showCurrentPrice, LineStyle = lineStyle, LineWidth = lineWidth, ResetProfileOn = resetProfileOn }, input, ref cacheProfileColumns);
 		}
 	}
 }
@@ -1719,14 +1765,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.ProfileColumns ProfileColumns(int maxDays, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.ProfileColumns ProfileColumns(Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth, Timeframe resetProfileOn)
 		{
-			return indicator.ProfileColumns(Input, maxDays, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.ProfileColumns(Input, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth, resetProfileOn);
 		}
 
-		public Indicators.ProfileColumns ProfileColumns(ISeries<double> input , int maxDays, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.ProfileColumns ProfileColumns(ISeries<double> input , Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth, Timeframe resetProfileOn)
 		{
-			return indicator.ProfileColumns(input, maxDays, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.ProfileColumns(input, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth, resetProfileOn);
 		}
 	}
 }
@@ -1735,14 +1781,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.ProfileColumns ProfileColumns(int maxDays, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.ProfileColumns ProfileColumns(Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth, Timeframe resetProfileOn)
 		{
-			return indicator.ProfileColumns(Input, maxDays, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.ProfileColumns(Input, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth, resetProfileOn);
 		}
 
-		public Indicators.ProfileColumns ProfileColumns(ISeries<double> input , int maxDays, Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth)
+		public Indicators.ProfileColumns ProfileColumns(ISeries<double> input , Brush cellColor, Brush highColor, Brush currColor, Brush markColor, float markOpacity, Brush textColor, int textSize, Brush askColor, Brush bidColor, Brush volumeColor, Brush highestvolumeColor, Brush pocColor, double minImbalance, double minRatio, bool autoScroll, bool setOulineColor, bool showDelta, bool showBidAsk, bool showProfile, bool showPoc, bool showUnfinished, bool fadeCells, bool fadeText, string indicatorVersion, bool showCurrentPrice, DashStyleHelper lineStyle, int lineWidth, Timeframe resetProfileOn)
 		{
-			return indicator.ProfileColumns(input, maxDays, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth);
+			return indicator.ProfileColumns(input, cellColor, highColor, currColor, markColor, markOpacity, textColor, textSize, askColor, bidColor, volumeColor, highestvolumeColor, pocColor, minImbalance, minRatio, autoScroll, setOulineColor, showDelta, showBidAsk, showProfile, showPoc, showUnfinished, fadeCells, fadeText, indicatorVersion, showCurrentPrice, lineStyle, lineWidth, resetProfileOn);
 		}
 	}
 }
