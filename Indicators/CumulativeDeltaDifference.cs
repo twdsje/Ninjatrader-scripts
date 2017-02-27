@@ -31,11 +31,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public class RowData
 		{
 			public long CumulativeDelta;
+			public long DeltaDifference;
 			public double Price;
 			
 			public RowData(long cumulativeDelta, double price)
 			{
 				CumulativeDelta = CumulativeDelta;
+				DeltaDifference = 0;
 				Price = price;			
 			}
 		}		
@@ -44,6 +46,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			public Dictionary<double, RowData> Data;
 			public long CurrentCumulativeDelta;
+			
+			public double HiPrice;
+			public long HiValue;
 
 			public Profile()
 			{
@@ -63,7 +68,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			    else
 			    {
 			        Data.Add(price, new RowData(CurrentCumulativeDelta, price));
-			    }			
+			    }
+				
+				CalculateValues();
 			}
 			
 			public void AddBidVolume(double price, long volume)
@@ -80,6 +87,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					Data.Add(price, new RowData(CurrentCumulativeDelta, price));
 			    }
+				
+				CalculateValues();
+			}
+			
+			public void CalculateValues()
+			{
+				HiValue = 0;
+				
+				foreach(KeyValuePair<double, RowData> kvp in Data)
+				{
+					RowData r = kvp.Value;
+					
+					r.DeltaDifference = r.CumulativeDelta - CurrentCumulativeDelta;
+					
+					if(Math.Abs(r.DeltaDifference) > HiValue)
+					{
+						HiValue = Math.Abs(r.DeltaDifference);
+						HiPrice = r.Price;
+					}
+				}
 			}
 		}		
 		
@@ -87,31 +114,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		#region Variables
 		
-//		private int rightsidemargin = 600;
-		
-		
-		
-		private double ask = 0.0;
-		private double bid = 0.0;
-//		private double spread = 0.0;
-		private double cls = 0.0;
-		private double vol = 0.0;
-		private double tmp = 0.0;
-		
-		private double min = 0.0;
-		private double max = 0.0;
-		private double rng = 0.0;
-		private double off = 0.0;
-		private double dif = 0.0;
-		
-		// ---
 		private DateTime lastRender;
-		
-		
-				
+
 		public Profile myProfile = new Profile();
-		
-		private Series<Profile> Profiles;
 		
 		private SessionIterator sessionIterator;
 		
@@ -134,15 +139,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 				BarsRequiredToPlot			= 2;
 				ScaleJustification			= ScaleJustification.Right;
 				
-				positiveColor    	 	= Brushes.YellowGreen;
-				negativeColor    	 	= Brushes.Tomato;
-				neutralColor    	 	= Brushes.DarkGray;
+				positiveColor    	 	= Brushes.Orange;
+				negativeColor    	 	= Brushes.CornflowerBlue;
+				neutralColor    	 	= Brushes.White;
 				textSize			= 11;
+				ResizableWidth = 30;
 			}
 			else if (State == State.Configure)
-			{			
-				Profiles = new Series<Profile>(this, MaximumBarsLookBack.Infinite);
-				
+			{							
 				ZOrder = ChartBars.ZOrder - 1;
 				
 				if(!Bars.IsTickReplay)
@@ -228,23 +232,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#region drawProfile
 		private void drawRow(ChartControl chartControl, ChartScale chartScale, RowData row)
 		{
-			//Calculate the deltadifference.
-			long deltaDifference = myProfile.CurrentCumulativeDelta - row.CumulativeDelta;
 			
 			//Calculate color of this row.
 			//Brush brushColor	= new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 0, 0)); //bidColor.Freeze();		
+			float alpha = alpha = (float)((double)Math.Abs(row.DeltaDifference) / (double)myProfile.HiValue);
 			Brush brushColor = neutralColor;
-			if(deltaDifference > 0)
+			if(row.DeltaDifference > 0)
 			{
 				brushColor= positiveColor;
 			}
-			else if (deltaDifference < 0)
+			else if (row.DeltaDifference < 0)
 			{
 				brushColor = negativeColor;
 			}
-				
 			
-			//Calculate width of this row.		
+			
+			//Calculate width of this row.
+			
+			
 				
 			//Calculate cell properties
 			double y1 = ((chartScale.GetYByValue(row.Price) + chartScale.GetYByValue(row.Price + TickSize)) / 2) + 1;
@@ -254,18 +259,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SharpDX.RectangleF rect = new SharpDX.RectangleF();
 			rect.X      = (float)Position;
 			rect.Y      = (float)y1;
-			rect.Width  = (float)-(CurrentWidth - 2);
+			rect.Width  = (float)-((ResizableWidth * alpha) + MinimumWidth - 2);
 			rect.Height = (float)Math.Abs(y1 - y2);			
 			
 			//Draw the row.
 			using(SharpDX.Direct2D1.Brush rowBrush =  brushColor.ToDxBrush(RenderTarget))
 			{
+				//rowBrush.Opacity = alpha;
+				rowBrush.Opacity = alpha;
+				RenderTarget.FillRectangle(rect, neutralColor.ToDxBrush(RenderTarget));
 				RenderTarget.FillRectangle(rect, rowBrush);
 			}
 
 			if(rect.Height > this.MinimumTextHeight)
 			{
-				RenderTarget.DrawText(string.Format("{0}", deltaDifference), textFormat, rect, Brushes.White.ToDxBrush(RenderTarget));
+				RenderTarget.DrawText(string.Format("{0}", row.DeltaDifference), textFormat, rect, TextColor.ToDxBrush(RenderTarget));
 			}
 		}
 		#endregion
@@ -320,6 +328,57 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

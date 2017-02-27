@@ -45,6 +45,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				IsSuspendedWhileInactive					= true;
 				
 				textSize			= 11;
+				TextColor = Brushes.Black;
 				LeftJustified = false;
 				Resizable = false;
 				IsInitalized = false;
@@ -73,7 +74,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			MinimumWidth = CalculateMinimumWidth();
 			MinimumTextHeight = CalculateMinimumTextHeight();
-			CurrentWidth = MinimumWidth;
+			CurrentWidth = MinimumWidth + ResizableWidth;
+			
 			CalculatePosition(chartControl);
 			
 			if(LeftJustified)
@@ -204,6 +206,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int CurrentWidth
 		{ get; set; }
 		
+		public int ResizableWidth
+		{ get; set; }
+		
 		[NinjaScriptProperty]
 		[XmlIgnore]
 		[Display(Name = "Left Justified", GroupName = "Column Style")]
@@ -225,6 +230,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name = "Text Size", GroupName = "Parameters", Order = 7)]
 		public int textSize
 		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[XmlIgnore]
+		[Display(Name = "Text Color", GroupName = "Parameters", Order = 9)]
+		public Brush TextColor
+		{ get; set; }
+		
+		[Browsable(false)]
+		public string TextColorSerializable
+		{
+			get { return Serialize.BrushToString(TextColor); }
+			set { TextColor = Serialize.StringToBrush(value); }
+		}
 		
 		public TextFormat textFormat
 		{ get; set; }
@@ -254,18 +272,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private ColumnPanel[] cacheColumnPanel;
-		public ColumnPanel ColumnPanel(bool leftJustified, int textSize)
+		public ColumnPanel ColumnPanel(bool leftJustified, int textSize, Brush textColor)
 		{
-			return ColumnPanel(Input, leftJustified, textSize);
+			return ColumnPanel(Input, leftJustified, textSize, textColor);
 		}
 
-		public ColumnPanel ColumnPanel(ISeries<double> input, bool leftJustified, int textSize)
+		public ColumnPanel ColumnPanel(ISeries<double> input, bool leftJustified, int textSize, Brush textColor)
 		{
 			if (cacheColumnPanel != null)
 				for (int idx = 0; idx < cacheColumnPanel.Length; idx++)
-					if (cacheColumnPanel[idx] != null && cacheColumnPanel[idx].LeftJustified == leftJustified && cacheColumnPanel[idx].textSize == textSize && cacheColumnPanel[idx].EqualsInput(input))
+					if (cacheColumnPanel[idx] != null && cacheColumnPanel[idx].LeftJustified == leftJustified && cacheColumnPanel[idx].textSize == textSize && cacheColumnPanel[idx].TextColor == textColor && cacheColumnPanel[idx].EqualsInput(input))
 						return cacheColumnPanel[idx];
-			return CacheIndicator<ColumnPanel>(new ColumnPanel(){ LeftJustified = leftJustified, textSize = textSize }, input, ref cacheColumnPanel);
+			return CacheIndicator<ColumnPanel>(new ColumnPanel(){ LeftJustified = leftJustified, textSize = textSize, TextColor = textColor }, input, ref cacheColumnPanel);
 		}
 	}
 }
@@ -274,14 +292,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.ColumnPanel ColumnPanel(bool leftJustified, int textSize)
+		public Indicators.ColumnPanel ColumnPanel(bool leftJustified, int textSize, Brush textColor)
 		{
-			return indicator.ColumnPanel(Input, leftJustified, textSize);
+			return indicator.ColumnPanel(Input, leftJustified, textSize, textColor);
 		}
 
-		public Indicators.ColumnPanel ColumnPanel(ISeries<double> input , bool leftJustified, int textSize)
+		public Indicators.ColumnPanel ColumnPanel(ISeries<double> input , bool leftJustified, int textSize, Brush textColor)
 		{
-			return indicator.ColumnPanel(input, leftJustified, textSize);
+			return indicator.ColumnPanel(input, leftJustified, textSize, textColor);
 		}
 	}
 }
@@ -290,14 +308,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.ColumnPanel ColumnPanel(bool leftJustified, int textSize)
+		public Indicators.ColumnPanel ColumnPanel(bool leftJustified, int textSize, Brush textColor)
 		{
-			return indicator.ColumnPanel(Input, leftJustified, textSize);
+			return indicator.ColumnPanel(Input, leftJustified, textSize, textColor);
 		}
 
-		public Indicators.ColumnPanel ColumnPanel(ISeries<double> input , bool leftJustified, int textSize)
+		public Indicators.ColumnPanel ColumnPanel(ISeries<double> input , bool leftJustified, int textSize, Brush textColor)
 		{
-			return indicator.ColumnPanel(input, leftJustified, textSize);
+			return indicator.ColumnPanel(input, leftJustified, textSize, textColor);
 		}
 	}
 }
