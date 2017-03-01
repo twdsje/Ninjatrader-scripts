@@ -84,10 +84,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else
 			{
-            	chartControl.Properties.BarMarginRight += CurrentWidth;
+            	chartControl.Properties.BarMarginRight = Position + CurrentWidth;
 			}
-			
-			IsInitalized = true;
 		}
 		
 		public void TerminateColumnPanel(ChartControl chartControl)
@@ -120,29 +118,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		public void CalculatePosition(ChartControl chartControl)
 		{
-			if(LeftJustified == true)
-			{
-				Position = chartControl.CanvasLeft;
-			}
-			else
-			{
-				Position = chartControl.CanvasRight;
-			}
+			Position = 0;
 			
 			//Adjust our position based on the width of all indicators on the same side of the chart that come before us.
 			foreach (NinjaTrader.Gui.NinjaScript.IndicatorRenderBase indicator in chartControl.Indicators)
 			{
-				if(indicator == this)
-				{
-					return;
-				}
-				else if(indicator is ColumnPanel && indicator.State != State.SetDefaults)
+				if(indicator is ColumnPanel && indicator.State != State.SetDefaults && indicator!= this)
 				{
 					ColumnPanel currentpanel = indicator as ColumnPanel;
 					
 					if(currentpanel.LeftJustified == LeftJustified)
 					{
-						Position -= JustificationFactor * currentpanel.CurrentWidth;
+						Position += currentpanel.CurrentWidth;						
 					}
 				}
 			}
@@ -198,15 +185,44 @@ namespace NinjaTrader.NinjaScript.Indicators
 			return (int)textHeight;
 		}
 		
+//		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+//		{	
+//			if(Bars == null || Bars.Instrument == null || IsInHitTest || CurrentBar < 1) { return; }
+		
+////			if(!IsInitalized)
+////			{
+////				InitalizeColumnPanel(ChartControl);
+////				InitializeLifetimeDrawingTools();
+////				IsInitalized = true;
+////			}
+			
+//			base.OnRender(chartControl, chartScale);			
+//		}
+		
 		#region Properties
 	
-		public int MinimumWidth
+		protected int MinimumWidth
 		{ get; set; }
 		
-		public int CurrentWidth
+		protected int CurrentWidth
 		{ get; set; }
 		
-		public int ResizableWidth
+		protected int ResizableWidth
+		{ get; set; }
+		
+		protected int Position
+		{ get; set; }
+		
+		protected bool Resizable
+		{ get; set; }
+		
+		protected TextFormat textFormat
+		{ get; set; }
+		
+		protected bool IsInitalized
+		{ get; set; }
+		
+		protected int MinimumTextHeight
 		{ get; set; }
 		
 		[NinjaScriptProperty]
@@ -222,9 +238,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				return (LeftJustified == false ? 1 : -1);
 			}
 		}
-		
-		public bool Resizable
-		{ get; set; }
 		
 		[Range(1, int.MaxValue), NinjaScriptProperty]
 		[Display(Name = "Text Size", GroupName = "Parameters", Order = 7)]
@@ -243,21 +256,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			get { return Serialize.BrushToString(TextColor); }
 			set { TextColor = Serialize.StringToBrush(value); }
 		}
-		
-		public TextFormat textFormat
-		{ get; set; }
-		
-		[Browsable(false)]
-		public int Position
-		{ get; set; }
-		
-		[Browsable(false)]
-		public bool IsInitalized
-		{ get; set; }
-		
-		[Browsable(false)]
-		public int MinimumTextHeight
-		{ get; set; }
 		
 		#endregion
 	}

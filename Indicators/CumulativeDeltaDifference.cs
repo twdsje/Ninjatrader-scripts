@@ -36,7 +36,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			public RowData(long cumulativeDelta, double price)
 			{
-				CumulativeDelta = CumulativeDelta;
+				CumulativeDelta = cumulativeDelta;
 				DeltaDifference = 0;
 				Price = price;			
 			}
@@ -99,7 +99,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				{
 					RowData r = kvp.Value;
 					
-					r.DeltaDifference = r.CumulativeDelta - CurrentCumulativeDelta;
+					r.DeltaDifference =  CurrentCumulativeDelta - r.CumulativeDelta;
 					
 					if(Math.Abs(r.DeltaDifference) > HiValue)
 					{
@@ -112,12 +112,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 
 		
-		#region Variables
+		#region Private Variables
 		
 		private DateTime lastRender;
-
-		public Profile myProfile = new Profile();
-		
+		private Profile myProfile = new Profile();		
 		private SessionIterator sessionIterator;
 		
 		#endregion
@@ -139,8 +137,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				BarsRequiredToPlot			= 2;
 				ScaleJustification			= ScaleJustification.Right;
 				
-				positiveColor    	 	= Brushes.Orange;
-				negativeColor    	 	= Brushes.CornflowerBlue;
+				positiveColor    	 	= Brushes.CornflowerBlue;
+				negativeColor    	 	= Brushes.Orange;
 				neutralColor    	 	= Brushes.White;
 				textSize			= 11;
 				ResizableWidth = 30;
@@ -206,12 +204,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 		
 		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
-		{			
-			if(Bars == null || Bars.Instrument == null || IsInHitTest || CurrentBar < 1) { return; }
+		{	
+			base.OnRender(chartControl, chartScale);	
+			if(Bars == null || Bars.Instrument == null || CurrentBar < 1) { return; }
 			
 			lastRender = DateTime.Now;
-			
-			base.OnRender(chartControl, chartScale);			
 			
 			try
         	{
@@ -229,7 +226,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 	        }
 		}
 		
-		#region drawProfile
 		private void drawRow(ChartControl chartControl, ChartScale chartScale, RowData row)
 		{
 			
@@ -257,7 +253,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			
 			SharpDX.RectangleF rect = new SharpDX.RectangleF();
-			rect.X      = (float)Position;
+			rect.X      = (float)chartControl.CanvasRight - Position;
 			rect.Y      = (float)y1;
 			rect.Width  = (float)-((ResizableWidth * alpha) + MinimumWidth - 2);
 			rect.Height = (float)Math.Abs(y1 - y2);			
@@ -276,16 +272,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RenderTarget.DrawText(string.Format("{0}", row.DeltaDifference), textFormat, rect, TextColor.ToDxBrush(RenderTarget));
 			}
 		}
-		#endregion
 		
 		#region Properties
 		
+		[XmlIgnore]
 		[NinjaScriptProperty]
 		[Display(Name="ResetProfileOn", Description="Reset Profile On", Order=0, GroupName="General")]
 		public Timeframe ResetProfileOn
 		{ get; set; }
 		
-
+		[XmlIgnore]
+		[Browsable(false)]
+		public string ResetProfileOnSerializable
+		{
+			get { return ResetProfileOn.ToString(); }
+			set { ResetProfileOn = (Timeframe) Enum.Parse(typeof(Timeframe), value); }
+		}
+		
 		[NinjaScriptProperty]
 		[XmlIgnore]
 		[Display(Name = "Negative Delta Color", GroupName = "Parameters", Order = 9)]
@@ -328,6 +331,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
