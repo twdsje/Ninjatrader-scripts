@@ -114,7 +114,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		#region Private Variables
 		
-		private DateTime lastRender;
+
 		private Profile myProfile = new Profile();		
 		private SessionIterator sessionIterator;
 		
@@ -208,7 +208,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			base.OnRender(chartControl, chartScale);	
 			if(Bars == null || Bars.Instrument == null || CurrentBar < 1) { return; }
 			
-			lastRender = DateTime.Now;
+			LastRender = DateTime.Now;
 			
 			try
         	{
@@ -222,7 +222,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			catch(Exception e)
 	        {
 
-	            Print("FootPrintV2: " + e.Message);
+	            Print("Cumulative Delta Difference: " + e.Message);
 	        }
 		}
 		
@@ -250,7 +250,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			//Calculate cell properties
 			double y1 = ((chartScale.GetYByValue(row.Price) + chartScale.GetYByValue(row.Price + TickSize)) / 2) + 1;
 			double y2 = ((chartScale.GetYByValue(row.Price) + chartScale.GetYByValue(row.Price - TickSize)) / 2) - 1;
-			
 			
 			SharpDX.RectangleF rect = new SharpDX.RectangleF();
 			rect.X      = (float)chartControl.CanvasRight - Position;
@@ -331,6 +330,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
+
+
+
 
 
 

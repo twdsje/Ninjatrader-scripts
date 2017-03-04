@@ -225,6 +225,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		protected int MinimumTextHeight
 		{ get; set; }
 		
+		protected DateTime LastRender
+		{ get; set; }
+		
 		[NinjaScriptProperty]
 		[XmlIgnore]
 		[Display(Name = "Left Justified", GroupName = "Column Style")]

@@ -7,3 +7,11 @@ NinjaTrader.Custom.xml
 NinjaTrader.Vendor.cs
 Resource.Designer.cs
 ResourceEnumConverter.cs
+AddOns/PriceActionSwingBaseMethods.cs
+Indicators/JTRelativeVolumeNT8.cs
+Indicators/Poncho/PriceActionSwing.cs
+Indicators/Poncho/PriceActionSwingOscillator.cs
+Indicators/Sim22/Sim22_PriorAllOHLC.cs
+Indicators/unGomDelta. Bar Delta for tick replay.cs
+Indicators/unGomDelta.Cum Delta for tick replay.cs
+Indicators/unGomDelta.UnGomCumDeltaFiltered.cs
