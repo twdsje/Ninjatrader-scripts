@@ -1736,8 +1736,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 	}
 }
 
-public enum Timeframe { Session, Week, Month, Never };
-
 #region NinjaScript generated code. Neither change nor remove.
 
 namespace NinjaTrader.NinjaScript.Indicators
