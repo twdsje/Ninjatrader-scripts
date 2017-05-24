@@ -273,7 +273,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 	}
 }
 
-public enum Timeframe { Session, Week, Month, Never };
 
 
 
