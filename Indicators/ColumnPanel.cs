@@ -21,6 +21,8 @@ using NinjaTrader.NinjaScript.DrawingTools;
 using SharpDX.DirectWrite;
 #endregion
 
+public enum Timeframe { Session, Week, Month, Never };
+
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators
 {
